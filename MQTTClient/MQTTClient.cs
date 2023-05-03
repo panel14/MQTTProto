@@ -1,5 +1,6 @@
 ﻿using MQTTnet;
 using MQTTnet.Client;
+using System.Text;
 
 namespace MQTTClient
 {
@@ -22,7 +23,7 @@ namespace MQTTClient
             this.token = token;
         }
 
-        public async Task InitAndConnectClient()
+        public async Task<string> InitAndConnectClient()
         {
             var options = new MqttClientOptionsBuilder()
                             .WithClientId(clientId)
@@ -35,13 +36,13 @@ namespace MQTTClient
             client.ApplicationMessageReceivedAsync += OnMessageReceive;
 
             await client.ConnectAsync(options, token);
-            Console.WriteLine("Connection is successfully.");
+            return clientId;
         }
 
-        private Task OnMessageReceive(MqttApplicationMessageReceivedEventArgs arg)
+        private Task OnMessageReceive(MqttApplicationMessageReceivedEventArgs args)
         {
             Console.WriteLine($"Message received to {clientId}");
-            Console.WriteLine($"Message: {arg.ApplicationMessage}");
+            Console.WriteLine($"Message: {Encoding.Default.GetString(args.ApplicationMessage.PayloadSegment)}");
             return Task.CompletedTask;
         }
 
@@ -58,32 +59,28 @@ namespace MQTTClient
         }
         
 
-        public async void PublishMessageAsync(string topic, string message)
+        public async Task PublishMessageAsync(string topic, string message)
         {
             var applicationMessage = new MqttApplicationMessageBuilder()
-                                        .WithTopic("topic")
-                                        .WithPayload(topic)
+                                        .WithTopic(topic)
+                                        .WithPayload(message)
                                         .Build();
 
             await client.PublishAsync(applicationMessage, token);
             Console.WriteLine($"Message is published by client {clientId}");
         }
 
-        public async void SubscribeAsync(string topicFilter)
+        public async Task SubscribeAsync(string topicFilter)
         {
-            var mqttSubscribeOptions = mqttFactory.CreateSubscribeOptionsBuilder()
-                .WithTopicFilter(
-                    f =>
-                    {
-                        f.WithTopic(topicFilter);
-                    })
+            var mqttSubscribeOptions = new MqttTopicFilterBuilder()
+                .WithTopic(topicFilter)
                 .Build();
             
             await client.SubscribeAsync(mqttSubscribeOptions, token);
             Console.WriteLine($"Client {clientId} subscribed on topic: {topicFilter}");
         }
 
-        public async void UnsubscribeAsync(string topicFilter)
+        public async Task UnsubscribeAsync(string topicFilter)
         {
             var mqttUnsubOptions = mqttFactory.CreateUnsubscribeOptionsBuilder()
                 .WithTopicFilter(topicFilter) 
@@ -91,6 +88,15 @@ namespace MQTTClient
 
             await client.UnsubscribeAsync(mqttUnsubOptions, token);
             Console.WriteLine($"Client {clientId} subscribed from topic: {topicFilter}");
+        }
+
+        public async Task DisconnectClient()
+        {
+            var disconnectOprions = new MqttClientDisconnectOptionsBuilder()
+                .WithReason(MqttClientDisconnectOptionsReason.NormalDisconnection)
+                .Build();
+
+            await client.DisconnectAsync(disconnectOprions);
         }
     }
 }

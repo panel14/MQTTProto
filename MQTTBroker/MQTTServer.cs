@@ -2,6 +2,7 @@
 using MQTTnet.Packets;
 using MQTTnet.Protocol;
 using MQTTnet.Server;
+using System.Text;
 
 namespace MQTTServer
 {
@@ -24,14 +25,34 @@ namespace MQTTServer
                 .Build();
         }
 
-        public async void InitServerWithNoOptions()
+        public async Task InitServerWithNoOptions()
         {
             var mqttServerOptions = CreateOptions();
             server = mqttFactory.CreateMqttServer(mqttServerOptions);
+
+            server.ClientConnectedAsync += OnClientConnected;
+            server.InterceptingPublishAsync += OnMessageIntersepted;
+
             await server.StartAsync();
+            Console.WriteLine($"Server started and listening on port {port}");
         }
 
-        public async void SetServerValidation(List<string> validIds, List<string> validNames)
+        private Task OnMessageIntersepted(InterceptingPublishEventArgs arg)
+        {
+            Console.WriteLine($"Message received from client {arg.ClientId}:\n" +
+                $"Topic:{arg.ApplicationMessage.Topic}\n" +
+                $"Message: {Encoding.Default.GetString(arg.ApplicationMessage.PayloadSegment)}");
+
+            return Task.CompletedTask;
+        }
+
+        private Task OnClientConnected(ClientConnectedEventArgs arg)
+        {
+            Console.WriteLine($"Client {arg.ClientId} connected to server");
+            return Task.CompletedTask;
+        }
+
+        public void SetServerValidation(List<string> validIds, List<string> validNames)
         {
             if (server != null && !server.IsStarted)
             {
@@ -91,22 +112,6 @@ namespace MQTTServer
                     var qos2AcknowledgePacket = e.AcknowledgePacket as MqttPubCompPacket;
                     Console.WriteLine($"QoS 2 reason code: {qos1AcknowledgePacket?.ReasonCode}");
 
-                    return Task.CompletedTask;
-                };
-            }
-            else
-            {
-                Console.WriteLine("Server already started, can't set notify handler");
-            }
-        }
-
-        public void InterseptApplicationMessages(string topic)
-        {
-            if (server != null && !server.IsStarted)
-            {
-                server.InterceptingPublishAsync += args =>
-                {
-                    args.ApplicationMessage.Topic = topic;
                     return Task.CompletedTask;
                 };
             }
