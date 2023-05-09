@@ -62,7 +62,7 @@ namespace MQTTServer
                     {
                         e.ReasonCode = MqttConnectReasonCode.ClientIdentifierNotValid;
                     }
-                    else if (!validNames.Contains(e.Username))
+                    else if (!validNames.Contains(e.UserName))
                     {
                         e.ReasonCode = MqttConnectReasonCode.BadUserNameOrPassword;
                     }

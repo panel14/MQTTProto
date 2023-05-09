@@ -9,17 +9,19 @@ Console.WriteLine("Choice mode:\n" +
     "q/quit - quit program");
 
 string? command = Console.ReadLine();
-int port = 707;
+int port = 1883;
 
 if (command != "q" || command != "quit")
 {
     switch (command)
     {
         case "1":
-            var client = new MQTTClientWrapper("localhost", port, CancellationToken.None);
-            string id = await client.InitAndConnectClient();
+            Console.WriteLine("Write topic");
+            string topic =  Console.ReadLine();
 
-            await client.PublishMessageAsync($"/drone_{id}", "image");
+            var client = new MQTTClientWrapper("broker.hivemq.com", port, CancellationToken.None);
+            string id = await client.InitAndConnectClient();
+            await client.SubscribeAsync(topic);
 
             Console.WriteLine("Press any key to close window");
             Console.ReadKey();

@@ -1,5 +1,6 @@
 ﻿using MQTTnet;
 using MQTTnet.Client;
+using System.Drawing;
 using System.Text;
 
 namespace MQTTClient
@@ -41,8 +42,23 @@ namespace MQTTClient
 
         private Task OnMessageReceive(MqttApplicationMessageReceivedEventArgs args)
         {
+            byte[] message = args.ApplicationMessage.PayloadSegment.ToArray();
+
             Console.WriteLine($"Message received to {clientId}");
+
             Console.WriteLine($"Message: {Encoding.Default.GetString(args.ApplicationMessage.PayloadSegment)}");
+
+            using (var ms = new MemoryStream(message, 0, message.Length))
+            {
+                var image = Image.FromStream(ms);
+                if (image != null)
+                {
+                    image.Save($"{args.ApplicationMessage.Topic}_image.jpg");
+                }
+            }
+
+            Console.WriteLine($"Image {args.ApplicationMessage.Topic}_image saved from message");
+
             return Task.CompletedTask;
         }
 
